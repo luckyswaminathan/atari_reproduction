@@ -1,9 +1,16 @@
 [project]
 name = "atari-reproduction"
 version = "0.1.0"
-description = "Add your description here"
+description = "Deep Q-Network implementation for Atari games"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "gymnasium>=1.2.2",
+    "gymnasium[atari, accept-rom-license]>=1.2.2",
+    "torch>=2.0.0",
+    "numpy>=1.24.0",
+    "opencv-python>=4.8.0",
+    "matplotlib>=3.7.0",
+    "tensorboard>=2.13.0",
+    "pillow>=10.0.0",
 ]
