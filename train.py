@@ -3,24 +3,31 @@ Minimal DQN training loop wiring replay buffer and model.
 This is a slim reference implementation; tune hyperparameters before real training.
 """
 import ale_py
+import argparse
 import random
 from collections import deque
-from typing import Deque
+from typing import Deque, Type
 import time
 
 import cv2
 import gymnasium as gym
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
-from models import BaseDQN as DQN
+from models import BaseDQN, DuelingDQN, MHADQN, DuelingMHADQN
 from replay_buffer import ReplayBuffer
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Global device selected: {device}")
+# Model registry
+MODELS = {
+    "base": BaseDQN,
+    "dueling": DuelingDQN,
+    "mha": MHADQN,
+    "dueling_mha": DuelingMHADQN,
+}
 
 CONFIG = {
     "env_id": "ALE/Breakout-v5",
@@ -60,7 +67,7 @@ def epsilon_by_step(step: int) -> float:
     return eps_end + (eps_start - eps_end) * max(0.0, (eps_decay - step) / eps_decay)
 
 
-def select_action(policy_net: DQN, state: torch.Tensor, step: int, num_actions: int) -> int:
+def select_action(policy_net: nn.Module, state: torch.Tensor, step: int, num_actions: int) -> int:
     if random.random() < epsilon_by_step(step):
         return random.randrange(num_actions)
     with torch.no_grad():
@@ -68,18 +75,31 @@ def select_action(policy_net: DQN, state: torch.Tensor, step: int, num_actions: 
         return int(torch.argmax(q_values, dim=1).item())
 
 
-def train():
+def train(model_name: str = "base"):
+    """
+    Train DQN on Atari Breakout.
+    
+    Args:
+        model_name: Name of the model to use. Options: 'base', 'dueling', 'mha', 'dueling_mha'
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
+    # Get model class
+    if model_name not in MODELS:
+        raise ValueError(f"Unknown model: {model_name}. Available: {list(MODELS.keys())}")
+    
+    ModelClass = MODELS[model_name]
+    print(f"Selected model: {model_name} ({ModelClass.__name__})")
+    
     # TensorBoard logging
-    writer = SummaryWriter(log_dir="runs/breakout_dqn")
+    writer = SummaryWriter(log_dir=f"runs/breakout_{model_name}")
     
     env = gym.make(CONFIG["env_id"], obs_type="rgb", frameskip=4, render_mode=None)
     num_actions = env.action_space.n
 
-    policy_net = DQN(num_actions).to(device)
-    target_net = DQN(num_actions).to(device)
+    policy_net = ModelClass(num_actions).to(device)
+    target_net = ModelClass(num_actions).to(device)
 
     print("\n" + "="*60)
     print("Network Architecture:")
@@ -215,6 +235,36 @@ def train():
     print("="*60)
 
 
+def main():
+    parser = argparse.ArgumentParser(
+        description="Train DQN on Atari Breakout",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=f"""
+Available models:
+  base        - Standard DQN (Mnih et al., 2013)
+  dueling     - Dueling DQN architecture
+  mha         - DQN with Multi-Head Attention
+  dueling_mha - Dueling DQN with Multi-Head Attention
+
+Example:
+  python train.py --model base
+  python train.py --model dueling
+  python train.py -m mha
+        """
+    )
+    
+    parser.add_argument(
+        "-m", "--model",
+        type=str,
+        default="base",
+        choices=list(MODELS.keys()),
+        help=f"Model architecture to use (default: base). Options: {', '.join(MODELS.keys())}"
+    )
+    
+    args = parser.parse_args()
+    train(model_name=args.model)
+
+
 if __name__ == "__main__":
-    train()
+    main()
 
