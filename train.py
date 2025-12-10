@@ -19,6 +19,9 @@ from models import BaseDQN as DQN
 from replay_buffer import ReplayBuffer
 
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Global device selected: {device}")
+
 CONFIG = {
     "env_id": "ALE/Breakout-v5",
     "buffer_capacity": 1_000_000,  # Paper: 1M
