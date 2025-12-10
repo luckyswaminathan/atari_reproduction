@@ -36,11 +36,8 @@ class DQN(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
-        # Multi-head attention over spatial tokens (7x7 = 49 tokens, dim=64)
-        # self.attn = nn.MultiheadAttention(embed_dim=64, num_heads=4, batch_first=False)
-
-        # Fully connected head
-        self.fc1 = nn.Linear(64, 512)
+        # Fully connected head (7x7x64 = 3136 flattened features)
+        self.fc1 = nn.Linear(3136, 512)
         self.fc2 = nn.Linear(512, self.num_actions)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -58,17 +55,11 @@ class DQN(nn.Module):
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))  # (B, 64, 7, 7)
 
-        # Optional attention path (commented out)
-        # b, c, h, w = x.shape
-        # tokens = x.view(b, c, h * w).permute(2, 0, 1)  # (49, B, 64)
-        # attn_out, _ = self.attn(tokens, tokens, tokens)  # (49, B, 64)
-        # attn_pooled = attn_out.mean(dim=0)  # (B, 64)
-
-        # Simple spatial average pooling (no attention)
-        attn_pooled = x.mean(dim=(2, 3))  # (B, 64)
+        # Flatten conv output (paper spec)
+        x = x.view(x.size(0), -1)  # (B, 3136)
 
         # Fully connected head
-        x = F.relu(self.fc1(attn_pooled))
+        x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
 

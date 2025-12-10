@@ -15,23 +15,23 @@ import torch
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
-from model import DQN
+from models import BaseDQN as DQN
 from replay_buffer import ReplayBuffer
 
 
 CONFIG = {
     "env_id": "ALE/Breakout-v5",
-    "buffer_capacity": 100_000,
+    "buffer_capacity": 1_000_000,  # Paper: 1M
     "batch_size": 32,
     "gamma": 0.99,
-    "lr": 1e-4,
-    "target_update_freq": 1_000,
-    "warmup_steps": 5_000,
-    "max_episodes": 20000,  # keep small by default
+    "lr": 0.00025,  # Paper: RMSProp lr
+    "target_update_freq": 10_000,  # Paper: 10k
+    "warmup_steps": 50_000,  # Paper: 50k random steps
+    "max_episodes": 20000,
     "max_steps_per_episode": 10_000,
     "epsilon_start": 1.0,
     "epsilon_end": 0.1,
-    "epsilon_decay": 100_000,  # steps
+    "epsilon_decay": 1_000_000,  # Paper: 1M frames
 }
 
 
@@ -87,7 +87,10 @@ def train():
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
 
-    optimizer = torch.optim.Adam(policy_net.parameters(), lr=CONFIG["lr"])
+    # Paper: RMSProp with alpha=0.95, eps=0.01
+    optimizer = torch.optim.RMSprop(
+        policy_net.parameters(), lr=CONFIG["lr"], alpha=0.95, eps=0.01
+    )
     buffer = ReplayBuffer(CONFIG["buffer_capacity"])
 
     global_step = 0
@@ -118,13 +121,15 @@ def train():
 
             next_obs, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
-            episode_reward += reward
+            # Paper: clip rewards to {-1, 0, +1}
+            clipped_reward = max(-1.0, min(1.0, reward))
+            episode_reward += reward  # Track unclipped for logging
 
             next_frame = preprocess(next_obs)
             frames.append(next_frame)
             next_state = stack_frames(frames)
 
-            buffer.add(state, action, reward, next_state, done)
+            buffer.add(state, action, clipped_reward, next_state, done)
             state = next_state
             global_step += 1
 
