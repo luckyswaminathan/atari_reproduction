@@ -1,0 +1,232 @@
+\documentclass[10pt, reqno, letterpaper, twoside]{amsart}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amssymb, bm, mathtools}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage[pdftex, xetex]{graphicx}
+\usepackage{enumerate, setspace}
+\usepackage{float, colortbl, tabularx, longtable, multirow, subcaption, environ,
+wrapfig, textcomp, booktabs}
+\usepackage{pgf, tikz, framed, url, hyperref}
+\usepackage[normalem]{ulem}
+\usetikzlibrary{arrows,positioning,automata,shadows,fit,shapes}
+\usepackage[english]{babel}
+\usepackage{microtype}
+\microtypecontext{spacing=nonfrench}
+\usepackage{times}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\title{TODO: Title}
+
+\author{
+TODO: Author names
+}
+
+\begin{document}
+
+\begin{abstract}
+% TODO: 5-8 sentences
+% - Problem: baseline DQN performance/stability limits
+% - Method: 4 variants (baseline, dueling, MHA, dueling+MHA)
+% - Experimental setup: environment(s), training budget, evaluation protocol
+% - Key results: who wins, by how much, tradeoffs
+% - One "why this matters" sentence
+\end{abstract}
+
+\maketitle
+
+%==============================================================================
+\section{Introduction}
+%==============================================================================
+
+% TODO: What DQN is doing (value-based RL from pixels) and why it's a good baseline
+
+% TODO: Your motivation:
+% - Dueling: better state-value estimation when many actions are similar
+% - MHA: better feature interaction modeling (spatial and/or temporal)
+
+\subsection{Contributions}
+
+% TODO: Clear contributions (bullet-like sentences):
+% - "Implemented dueling head on top of the baseline CNN."
+% - "Inserted an MHA module at <where you placed it>."
+% - "Ran controlled comparisons across the four variants."
+
+%==============================================================================
+\section{Background}
+%==============================================================================
+
+% TODO: MDP + objective (discounted return)
+
+% TODO: Q-learning + Bellman target (brief equation and explanation)
+
+% TODO: Baseline DQN components you actually use:
+% - Experience replay and why it helps with correlated samples
+% - ε-greedy exploration
+% - Input preprocessing (frame stacking, resizing/cropping)
+
+% TODO: Define your task(s) and action space, reward, termination
+
+%==============================================================================
+\section{Related Work}
+%==============================================================================
+
+% TODO: "Playing Atari with Deep Reinforcement Learning" as baseline reference
+% TODO: Dueling DQN paper
+% TODO: Attention in RL / vision backbones (1-3 relevant sources)
+
+%==============================================================================
+\section{Method}
+%==============================================================================
+
+\subsection{Baseline Model}
+
+% TODO: Architecture (CNN -> FC -> Q-values)
+% - Conv sizes/strides
+% - Frame stack details
+% - Training loop: replay buffer sampling, TD target, optimizer, exploration schedule
+
+\subsection{Dueling DQN Variant}
+
+% TODO: Describe the head split:
+% - Shared feature extractor
+% - Two streams: Value V(s) and Advantage A(s,a)
+% - Combine into Q(s,a) = V(s) + (A(s,a) − mean_a A(s,a))
+
+% TODO: Implementation details:
+% - Where the split happens
+% - Normalization choice (mean vs max)
+
+\subsection{MHA Variant}
+
+% TODO: Where attention is applied:
+% - Spatial attention: treat conv feature map as tokens
+% - Number of heads, model dimension
+% - Residual connections, layer norm (if used)
+
+\subsection{Dueling + MHA}
+
+% TODO: Clarify ordering:
+% - CNN -> MHA -> (dueling head), or other arrangement
+% - Parameter count comparison
+
+\subsection{Hypotheses}
+
+% TODO: Write these explicitly
+% - Dueling should help sample efficiency and stability
+% - MHA should help when success depends on relating distant objects/features
+
+%==============================================================================
+\section{Experimental Setup}
+%==============================================================================
+
+% TODO: Environments: game(s)/task(s), observation shape, action count
+
+% TODO: Data pipeline:
+% - Preprocessing (resize/crop, grayscale, frame stack)
+% - Frame-skip / action repeat
+% - Reward clipping
+
+% TODO: Training details:
+% - Replay buffer size, batch size, optimizer, learning rate, discount γ
+% - ε schedule (start/end, anneal length)
+% - Target update method
+
+% TODO: Compute budget:
+% - Steps/frames trained, number of seeds, GPU/CPU
+
+% TODO: Fairness controls:
+% - Same training steps and evaluation frequency
+% - Same random seeds
+
+%==============================================================================
+\section{Evaluation Protocol and Metrics}
+%==============================================================================
+
+% TODO: Primary metric: average episodic return
+% TODO: Variance: std across seeds, confidence intervals
+% TODO: Sample efficiency: score vs environment steps curve
+% TODO: Stability: training curve smoothness, Q-value magnitudes
+
+%==============================================================================
+\section{Results}
+%==============================================================================
+
+% TODO: One main table:
+% - Rows: Baseline, Dueling, MHA, Dueling+MHA
+% - Columns: final score, best score, AUC, wall-clock time, params
+
+% TODO: Figures:
+% - Learning curves (mean over seeds with shaded variance)
+% - Bar chart of final performance with error bars
+
+% TODO: Key comparisons:
+% - "Does dueling help alone?"
+% - "Does MHA help alone?"
+% - "Is the combined model additive or redundant?"
+% - "Any environments where a method hurts?"
+
+%==============================================================================
+\section{Analysis and Ablations}
+%==============================================================================
+
+% TODO: Attention ablations:
+% - heads ∈ {1, 2, 4, 8}
+% - where attention is inserted (early vs late)
+
+% TODO: Dueling ablations:
+% - mean vs max advantage normalization
+% - where you split the streams
+
+% TODO: Capacity/compute:
+% - parameter count comparison
+% - training time comparison
+
+% TODO: Qualitative:
+% - rollout examples (success/failure cases)
+
+%==============================================================================
+\section{Discussion}
+%==============================================================================
+
+% TODO: Interpret results relative to hypotheses
+
+% TODO: Tradeoffs:
+% - performance vs compute
+% - stability vs peak score
+% - sensitivity to hyperparameters
+
+% TODO: Failure modes:
+% - when attention doesn't help
+% - when dueling doesn't help
+
+%==============================================================================
+\section{Conclusion}
+%==============================================================================
+
+% TODO: 3-5 sentences:
+% - what worked best
+% - what you learned
+% - what you'd try next (Double DQN, prioritized replay, distributional RL, etc.)
+
+%==============================================================================
+\section*{References}
+%==============================================================================
+
+\begin{thebibliography}{9}
+
+% TODO: Add your references
+
+\end{thebibliography}
+
+%==============================================================================
+\appendix
+\section{Appendix}
+%==============================================================================
+
+% TODO: Full hyperparameter table
+% TODO: Pseudocode for training loop
+% TODO: Extra plots (per-environment curves, additional seeds)
+
+\end{document}
