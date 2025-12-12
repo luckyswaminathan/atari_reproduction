@@ -33,7 +33,7 @@ MODELS = {
 }
 
 CONFIG = {
-    "env_id": "ALE/Breakout-v5",
+    "env_id": "Breakout-v4",
     "buffer_capacity": 50_000,  # Reduced for faster training
     "batch_size": 32,
     "gamma": 0.99,
