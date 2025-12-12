@@ -34,17 +34,17 @@ MODELS = {
 
 CONFIG = {
     "env_id": "ALE/Breakout-v5",
-    "buffer_capacity": 1_000_000,  # Paper: 1M
+    "buffer_capacity": 50_000,  # Reduced for faster training
     "batch_size": 32,
     "gamma": 0.99,
-    "lr": 0.00025,  # Paper: RMSProp lr
-    "target_update_freq": 10_000,  # Paper: 10k
-    "warmup_steps": 50_000,  # Paper: 50k random steps
-    "max_episodes": 20000,
-    "max_steps_per_episode": 10_000,
+    "lr": 0.00025,
+    "target_update_freq": 1_000,  # Reduced for faster updates
+    "warmup_steps": 1_000,  # Reduced warmup for faster start
+    "max_episodes": 2000,  # Reduced from 20k to 2k episodes
+    "max_steps_per_episode": 5_000,  # Reduced max steps per episode
     "epsilon_start": 1.0,
     "epsilon_end": 0.1,
-    "epsilon_decay": 1_000_000,  # Paper: 1M frames
+    "epsilon_decay": 100_000,  # Faster epsilon decay
 }
 
 
@@ -208,26 +208,27 @@ def train(model_name: str = "base"):
         episode_time = time.time() - episode_start_time
         epsilon = epsilon_by_step(global_step)
         
-        # Print episode stats
-        print(f"Episode {episode+1}/{CONFIG['max_episodes']} | "
-              f"Reward: {episode_reward:6.1f} | "
-              f"Steps: {step+1:4d} | "
-              f"Loss: {avg_loss:.4f} | "
-              f"Epsilon: {epsilon:.3f} | "
-              f"Buffer: {len(buffer):6d} | "
-              f"Time: {episode_time:.1f}s")
+        # Print episode stats every 100 episodes (reduced verbosity)
+        if (episode + 1) % 100 == 0:
+            print(f"Episode {episode+1}/{CONFIG['max_episodes']} | "
+                  f"Reward: {episode_reward:6.1f} | "
+                  f"Steps: {step+1:4d} | "
+                  f"Loss: {avg_loss:.4f} | "
+                  f"Epsilon: {epsilon:.3f} | "
+                  f"Buffer: {len(buffer):6d} | "
+                  f"Time: {episode_time:.1f}s")
         
         # Log to TensorBoard
         writer.add_scalar("Reward/Episode", episode_reward, episode)
         writer.add_scalar("Loss/Episode", avg_loss, episode)
         writer.add_scalar("Steps/Episode", step + 1, episode)
         
-        # Print running averages every 10 episodes
-        if (episode + 1) % 10 == 0:
-            avg_reward = np.mean(episode_rewards[-10:])
-            avg_loss_recent = np.mean(episode_losses[-10:])
-            print(f"\n📊 Last 10 episodes avg: Reward={avg_reward:.1f}, Loss={avg_loss_recent:.4f}\n")
-            writer.add_scalar("Reward/Average_10ep", avg_reward, episode)
+        # Print running averages every 50 episodes (reduced frequency)
+        if (episode + 1) % 50 == 0:
+            avg_reward = np.mean(episode_rewards[-50:]) if len(episode_rewards) >= 50 else np.mean(episode_rewards)
+            avg_loss_recent = np.mean(episode_losses[-50:]) if len(episode_losses) >= 50 else np.mean(episode_losses)
+            print(f"\n📊 Last 50 episodes avg: Reward={avg_reward:.1f}, Loss={avg_loss_recent:.4f}\n")
+            writer.add_scalar("Reward/Average_50ep", avg_reward, episode)
 
     env.close()
     writer.close()
