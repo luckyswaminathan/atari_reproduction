@@ -14,6 +14,8 @@ from datetime import datetime
 
 import cv2
 import gymnasium as gym
+import ale_py
+gym.register_envs(ale_py)  # Register ALE environments
 import numpy as np
 import torch
 import torch.nn as nn
