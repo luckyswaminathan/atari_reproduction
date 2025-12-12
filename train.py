@@ -15,7 +15,6 @@ from datetime import datetime
 import cv2
 import gymnasium as gym
 import ale_py
-gym.register_envs(ale_py)  # Register ALE environments
 import numpy as np
 import torch
 import torch.nn as nn
@@ -108,6 +107,8 @@ def train(model_name: str = "base"):
     # TensorBoard logging
     writer = SummaryWriter(log_dir=f"runs/breakout_{model_name}")
 
+    print("DEBUG: Registering ALE environments...")
+    gym.register_envs(ale_py)
     print("DEBUG: Creating environment...")
     env = gym.make(CONFIG["env_id"], obs_type="rgb", frameskip=4, render_mode=None)
     print("DEBUG: Environment created successfully!")
