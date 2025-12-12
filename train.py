@@ -38,7 +38,7 @@ CONFIG = {
     "batch_size": 32,
     "gamma": 0.99,
     "lr": 0.00025,
-    "target_update_freq": 500,  # More frequent updates for shorter training
+    "target_update_freq": 1_000,  # Balanced frequency for 2000 episode training
     "warmup_steps": 1_000,  # Reduced warmup for faster start
     "max_episodes": 2000,  # Reduced from 20k to 2k episodes
     "max_steps_per_episode": 5_000,  # Reduced max steps per episode
