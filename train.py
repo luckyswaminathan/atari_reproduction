@@ -8,6 +8,9 @@ import random
 from collections import deque
 from typing import Deque, Type
 import time
+import json
+import os
+from datetime import datetime
 
 import cv2
 import gymnasium as gym
@@ -82,6 +85,13 @@ def train(model_name: str = "base"):
     Args:
         model_name: Name of the model to use. Options: 'base', 'dueling', 'mha', 'dueling_mha'
     """
+    # Track training start time
+    training_start_time = time.time()
+    training_start_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Create checkpoints directory
+    os.makedirs("checkpoints", exist_ok=True)
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
@@ -222,15 +232,65 @@ def train(model_name: str = "base"):
     env.close()
     writer.close()
     
+    # Calculate total training time
+    training_end_time = time.time()
+    total_training_time = training_end_time - training_start_time
+    training_hours = int(total_training_time // 3600)
+    training_minutes = int((total_training_time % 3600) // 60)
+    training_seconds = int(total_training_time % 60)
+    
+    # Save trained model
+    model_save_path = f"checkpoints/{model_name}_final.pt"
+    torch.save({
+        'model_name': model_name,
+        'model_state_dict': policy_net.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'target_net_state_dict': target_net.state_dict(),
+        'total_episodes': len(episode_rewards),
+        'total_steps': global_step,
+        'final_epsilon': epsilon_by_step(global_step),
+        'best_reward': max(episode_rewards) if episode_rewards else 0,
+        'avg_reward': float(np.mean(episode_rewards)) if episode_rewards else 0,
+        'config': CONFIG,
+    }, model_save_path)
+    print(f"\n💾 Model saved to: {model_save_path}")
+    
+    # Save training logs as JSON
+    logs_save_path = f"checkpoints/{model_name}_logs.json"
+    training_logs = {
+        'model_name': model_name,
+        'training_start': training_start_datetime,
+        'training_end': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'total_training_time_seconds': total_training_time,
+        'total_training_time_formatted': f"{training_hours}h {training_minutes}m {training_seconds}s",
+        'total_episodes': len(episode_rewards),
+        'total_steps': global_step,
+        'final_epsilon': epsilon_by_step(global_step),
+        'config': CONFIG,
+        'episode_rewards': episode_rewards,
+        'episode_losses': episode_losses,
+        'best_reward': max(episode_rewards) if episode_rewards else 0,
+        'avg_reward': float(np.mean(episode_rewards)) if episode_rewards else 0,
+        'device': str(device),
+    }
+    with open(logs_save_path, 'w') as f:
+        json.dump(training_logs, f, indent=2)
+    print(f"📊 Training logs saved to: {logs_save_path}")
+    
     # Final summary
     print("\n" + "="*60)
     print("Training Complete!")
     print("="*60)
+    print(f"Model: {model_name}")
     print(f"Total episodes: {len(episode_rewards)}")
     print(f"Total steps: {global_step}")
+    print(f"Training time: {training_hours}h {training_minutes}m {training_seconds}s")
     print(f"Average reward: {np.mean(episode_rewards):.2f}")
     print(f"Best episode reward: {max(episode_rewards):.2f}")
     print(f"Final epsilon: {epsilon_by_step(global_step):.3f}")
+    print(f"\n📁 Saved files:")
+    print(f"   - {model_save_path}")
+    print(f"   - {logs_save_path}")
     print(f"\n📈 View training metrics: tensorboard --logdir=runs")
     print("="*60)
 
