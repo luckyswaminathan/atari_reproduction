@@ -38,7 +38,7 @@ CONFIG = {
     "batch_size": 32,
     "gamma": 0.99,
     "lr": 0.00025,
-    "target_update_freq": 1_000,  # Reduced for faster updates
+    "target_update_freq": 500,  # More frequent updates for shorter training
     "warmup_steps": 1_000,  # Reduced warmup for faster start
     "max_episodes": 2000,  # Reduced from 20k to 2k episodes
     "max_steps_per_episode": 5_000,  # Reduced max steps per episode
@@ -81,19 +81,20 @@ def select_action(policy_net: nn.Module, state: torch.Tensor, step: int, num_act
 def train(model_name: str = "base"):
     """
     Train DQN on Atari Breakout.
-    
+
     Args:
         model_name: Name of the model to use. Options: 'base', 'dueling', 'mha', 'dueling_mha'
     """
     # Track training start time
     training_start_time = time.time()
     training_start_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
     # Create checkpoints directory
     os.makedirs("checkpoints", exist_ok=True)
-    
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+    print("DEBUG: Starting environment setup...")
     
     # Get model class
     if model_name not in MODELS:
@@ -104,8 +105,10 @@ def train(model_name: str = "base"):
     
     # TensorBoard logging
     writer = SummaryWriter(log_dir=f"runs/breakout_{model_name}")
-    
+
+    print("DEBUG: Creating environment...")
     env = gym.make(CONFIG["env_id"], obs_type="rgb", frameskip=4, render_mode=None)
+    print("DEBUG: Environment created successfully!")
     num_actions = env.action_space.n
 
     policy_net = ModelClass(num_actions).to(device)
