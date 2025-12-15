@@ -102,7 +102,7 @@ DQN utilizes experience replay to provide stability during training by storing t
 \section{Method}
 %==============================================================================
 
-For each of the following models, the forward pass is takes as input a stack of 4 grayscale frames of size 84x84 pixels, and outputs Q-values for each possible action in the environment. 
+For each of the following models, the forward pass takes as input a stack of 4 grayscale frames of size 84x84 pixels, and outputs Q-values for each possible action in the environment. 
 
 Training each model...
 
@@ -116,9 +116,6 @@ Training each model...
 The baseline model is a DQN based on the architecture proposed by Mnih et al. in "Playing Atari with Deep Reinforcement Learning". The model consists of a convolutional neural network (CNN), intaking 4 stacked frames of 84x84 pixels and utilizing three convolutional layers (32 filters of size 8x8 with stride 4, 64 filters of size 4x4 with stride 2, and 64 filters of size 3x3 with stride 1), followed by two fully connected layers (Input size 3136 to 512 units, and 512 units to output layer with number of actions). The ReLU activation function is applied after each convolutional and fully connected layer except for the output layer.
 
 
-
-
-
 \subsection{Dueling DQN Variant}
 
 % TODO: Describe the head split:
@@ -130,12 +127,18 @@ The baseline model is a DQN based on the architecture proposed by Mnih et al. in
 % - Where the split happens
 % - Normalization choice (mean vs max)
 
+The dueling DQN is identical to the original baseline model up until the final convolutional layer. After this layer, there is a hidden layer with 512 units and a RELU activation function. This gets fed into the Value stream and the Advantage stream (nn.Linear(512, 1) and nn.Linear(512, num_actions) respectively). The outputs of these two streams are then combined to produce the final Q-values using the equation Q(s,a) = V(s) + (A(s,a) − mean_a A(s,a)).
+
+The purpose of this architecture is such that the model learns the value of a state separately from an action's advantage, which can help in scenarios where many actions have similar outcomes.
+
 \subsection{MHA Variant}
 
 % TODO: Where attention is applied:
 % - Spatial attention: treat conv feature map as tokens
 % - Number of heads, model dimension
 % - Residual connections, layer norm (if used)
+
+The Multi-Head Attention (MHA) variant utilizes a multi-head self-attention mechanism after the convolutional layers of the baseline DQNB architecture. 
 
 \subsection{Dueling + MHA}
 
