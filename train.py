@@ -79,12 +79,13 @@ def select_action(policy_net: nn.Module, state: torch.Tensor, step: int, num_act
         return int(torch.argmax(q_values, dim=1).item())
 
 
-def train(model_name: str = "base"):
+def train(model_name: str = "base", resume: bool = False):
     """
     Train DQN on Atari Breakout.
 
     Args:
         model_name: Name of the model to use. Options: 'base', 'dueling', 'mha', 'dueling_mha'
+        resume: If True, resume training from a checkpoint
     """
     # Track training start time
     training_start_time = time.time()
@@ -104,8 +105,11 @@ def train(model_name: str = "base"):
     ModelClass = MODELS[model_name]
     print(f"Selected model: {model_name} ({ModelClass.__name__})")
     
-    # TensorBoard logging
-    writer = SummaryWriter(log_dir=f"runs/breakout_{model_name}")
+    # TensorBoard logging - use unique name if resuming to avoid overwriting
+    if resume:
+        writer = SummaryWriter(log_dir=f"runs/breakout_{model_name}_continued")
+    else:
+        writer = SummaryWriter(log_dir=f"runs/breakout_{model_name}")
 
     print("DEBUG: Registering ALE environments...")
     gym.register_envs(ale_py)
@@ -123,9 +127,6 @@ def train(model_name: str = "base"):
     print(policy_net)
     print("="*60 + "\n")
     
-    target_net.load_state_dict(policy_net.state_dict())
-    target_net.eval()
-
     # Paper: RMSProp with alpha=0.95, eps=0.01
     optimizer = torch.optim.RMSprop(
         policy_net.parameters(), lr=CONFIG["lr"], alpha=0.95, eps=0.01
@@ -136,12 +137,46 @@ def train(model_name: str = "base"):
     episode_rewards = []
     episode_losses = []
     training_started = False
-
-    print(f"Starting training with {CONFIG['max_episodes']} episodes...")
+    start_episode = 0
+    
+    # Load checkpoint if resuming
+    if resume:
+        checkpoint_path = f"checkpoints/{model_name}_final.pt"
+        if os.path.exists(checkpoint_path):
+            print(f"\n🔄 Resuming training from checkpoint: {checkpoint_path}")
+            checkpoint = torch.load(checkpoint_path, map_location=device)
+            policy_net.load_state_dict(checkpoint['model_state_dict'])
+            target_net.load_state_dict(checkpoint['target_net_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            global_step = checkpoint.get('total_steps', 0)
+            start_episode = checkpoint.get('total_episodes', 0)
+            
+            # Load previous rewards/losses from JSON log if available
+            logs_path = f"checkpoints/{model_name}_logs.json"
+            if os.path.exists(logs_path):
+                with open(logs_path, 'r') as f:
+                    prev_logs = json.load(f)
+                    episode_rewards = prev_logs.get('episode_rewards', [])
+                    episode_losses = prev_logs.get('episode_losses', [])
+            
+            print(f"   Loaded {start_episode} previous episodes, {global_step} total steps")
+            print(f"   Previous avg reward: {checkpoint.get('avg_reward', 0):.2f}")
+            print(f"   Previous best reward: {checkpoint.get('best_reward', 0):.2f}")
+            training_started = True  # Skip warmup message since we're resuming
+        else:
+            print(f"\n⚠️ No checkpoint found at {checkpoint_path}, starting fresh training")
+            resume = False
+    else:
+        target_net.load_state_dict(policy_net.state_dict())
+    
+    target_net.eval()
+    
+    total_episodes = start_episode + CONFIG['max_episodes']
+    print(f"Starting training from episode {start_episode + 1} to {total_episodes}...")
     print(f"Warmup steps: {CONFIG['warmup_steps']}")
     print(f"Target network updates every {CONFIG['target_update_freq']} steps\n")
 
-    for episode in range(CONFIG["max_episodes"]):
+    for episode in range(start_episode, total_episodes):
         obs, _ = env.reset()
         frames: Deque[torch.Tensor] = deque(maxlen=4)
         first_frame = preprocess(obs)
@@ -216,7 +251,7 @@ def train(model_name: str = "base"):
         
         # Print episode stats every 100 episodes (reduced verbosity)
         if (episode + 1) % 100 == 0:
-            print(f"Episode {episode+1}/{CONFIG['max_episodes']} | "
+            print(f"Episode {episode+1}/{total_episodes} | "
                   f"Reward: {episode_reward:6.1f} | "
                   f"Steps: {step+1:4d} | "
                   f"Loss: {avg_loss:.4f} | "
@@ -317,6 +352,7 @@ Example:
   python train.py --model base
   python train.py --model dueling
   python train.py -m mha
+  python train.py --model base --resume  # Continue training from checkpoint
         """
     )
     
@@ -328,8 +364,14 @@ Example:
         help=f"Model architecture to use (default: base). Options: {', '.join(MODELS.keys())}"
     )
     
+    parser.add_argument(
+        "-r", "--resume",
+        action="store_true",
+        help="Resume training from a saved checkpoint"
+    )
+    
     args = parser.parse_args()
-    train(model_name=args.model)
+    train(model_name=args.model, resume=args.resume)
 
 
 if __name__ == "__main__":
