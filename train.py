@@ -21,7 +21,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
-from models import BaseDQN, DuelingDQN, MHADQN, DuelingMHADQN
+from models import BaseDQN, DuelingDQN, MHADQN, DuelingMHADQN, MHAV2DQN
 from replay_buffer import ReplayBuffer
 
 
@@ -31,6 +31,7 @@ MODELS = {
     "dueling": DuelingDQN,
     "mha": MHADQN,
     "dueling_mha": DuelingMHADQN,
+    "mha_v2": MHAV2DQN,
 }
 
 CONFIG = {
@@ -41,7 +42,7 @@ CONFIG = {
     "lr": 0.00025,
     "target_update_freq": 1_000,  # Balanced frequency for 2000 episode training
     "warmup_steps": 1_000,  # Reduced warmup for faster start
-    "max_episodes": 5000,  # Increased to 5k episodes for longer training
+    "max_episodes": 20000,  # 20k episodes for thorough training
     "max_steps_per_episode": 5_000,  # Reduced max steps per episode
     "epsilon_start": 1.0,
     "epsilon_end": 0.1,
@@ -345,12 +346,13 @@ def main():
 Available models:
   base        - Standard DQN (Mnih et al., 2013)
   dueling     - Dueling DQN architecture
-  mha         - DQN with Multi-Head Attention
+  mha         - DQN with Multi-Head Attention (original, has bottleneck)
   dueling_mha - Dueling DQN with Multi-Head Attention
+  mha_v2      - Improved MHA DQN (no bottleneck, positional encoding, residual)
 
 Example:
   python train.py --model base
-  python train.py --model dueling
+  python train.py --model mha_v2
   python train.py -m mha
   python train.py --model base --resume  # Continue training from checkpoint
         """
