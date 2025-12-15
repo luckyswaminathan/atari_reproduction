@@ -46,6 +46,8 @@ TODO: Author names
 % - Dueling: better state-value estimation when many actions are similar
 % - MHA: better feature interaction modeling (spatial and/or temporal)
 
+
+
 \subsection{Contributions}
 
 % TODO: Clear contributions (bullet-like sentences):
@@ -68,7 +70,27 @@ TODO: Author names
 
 % TODO: Define your task(s) and action space, reward, termination
 
-%==============================================================================
+
+Q-learning is an algorithm for reinforcement learning that aims to learn the optimal action given a state. Q-learning takes into account the state, actions, and rewards to learn a policy that maximizes the cumulative reward over time.
+
+The Bellman equation is the fundamental equation in reinforcement learning and outputs the cost of taking an action in a given state, then following the optimal policy thereafter. The Bellman equation is defined as:
+
+\begin{equation}
+Q(s,a) = R(s,a) + \gamma \max_{a'} Q(s',a')
+\end{equation}
+
+The optimal policy is the policy that maximizes the cumulative reward, and finding this optimal policy is the goal of reinforcement learning. 
+
+Generally, the Q-values are stored in a table, calculated using a function approximator, or found using a Markov chain, but this limits the complexity of the environments that can be solved.
+
+Deep Q-Networks (DQN) provided a breakthrough in reinforcement learning through the process training a deep neural network to approximate the Q-values, allowing for reinforcement learning to be applied to much more complex environments, a previous limitation of traditional Q-learning. 
+
+Some difficulties with previous Q-learning methods were instability and divergence when a non-linear function approximator was used. 
+
+DQN utilizes experience replay to provide stability during training by storing the experiences of the agent, and batch sampling from this storage to break up correlations in the observation sequence.
+
+
+
 \section{Related Work}
 %==============================================================================
 
@@ -80,12 +102,22 @@ TODO: Author names
 \section{Method}
 %==============================================================================
 
+For each of the following models, the forward pass is takes as input a stack of 4 grayscale frames of size 84x84 pixels, and outputs Q-values for each possible action in the environment. 
+
+Training each model...
+
 \subsection{Baseline Model}
 
 % TODO: Architecture (CNN -> FC -> Q-values)
 % - Conv sizes/strides
 % - Frame stack details
 % - Training loop: replay buffer sampling, TD target, optimizer, exploration schedule
+
+The baseline model is a DQN based on the architecture proposed by Mnih et al. in "Playing Atari with Deep Reinforcement Learning". The model consists of a convolutional neural network (CNN), intaking 4 stacked frames of 84x84 pixels and utilizing three convolutional layers (32 filters of size 8x8 with stride 4, 64 filters of size 4x4 with stride 2, and 64 filters of size 3x3 with stride 1), followed by two fully connected layers (Input size 3136 to 512 units, and 512 units to output layer with number of actions). The ReLU activation function is applied after each convolutional and fully connected layer except for the output layer.
+
+
+
+
 
 \subsection{Dueling DQN Variant}
 
