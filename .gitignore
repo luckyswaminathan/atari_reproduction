@@ -1,1 +1,15 @@
-.venv.DS_Store
+.venv
+venv/
+.DS_Store
+__pycache__/
+*.pyc
+runs/
+checkpoints/
+checkpoints_10k/
+checkpoints_ec2/
+checkpoint_20k_mhaV2/
+plots/
+plots_10k/
+*.pt
+*.tfevents.*
+training_*.log

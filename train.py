@@ -42,7 +42,7 @@ CONFIG = {
     "lr": 0.00025,
     "target_update_freq": 1_000,  # Balanced frequency for 2000 episode training
     "warmup_steps": 1_000,  # Reduced warmup for faster start
-    "max_episodes": 20000,  # 20k episodes for thorough training
+    "max_episodes": 50000,  # 50k episodes for thorough training
     "max_steps_per_episode": 5_000,  # Reduced max steps per episode
     "epsilon_start": 1.0,
     "epsilon_end": 0.1,
@@ -272,6 +272,23 @@ def train(model_name: str = "base", resume: bool = False):
             print(f"\n📊 Last 50 episodes avg: Reward={avg_reward:.1f}, Loss={avg_loss_recent:.4f}\n")
             writer.add_scalar("Reward/Average_50ep", avg_reward, episode)
 
+
+        # Checkpoint every 10k episodes
+        if (episode + 1) % 10000 == 0:
+            checkpoint_path = f"checkpoints/{model_name}_checkpoint_{episode+1}.pt"
+            torch.save({
+                'model_name': model_name,
+                'model_state_dict': policy_net.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'target_net_state_dict': target_net.state_dict(),
+                'episode': episode + 1,
+                'total_steps': global_step,
+                'epsilon': epsilon_by_step(global_step),
+                'avg_reward': float(np.mean(episode_rewards[-1000:])) if len(episode_rewards) >= 1000 else float(np.mean(episode_rewards)),
+                'best_reward': max(episode_rewards) if episode_rewards else 0,
+                'config': CONFIG,
+            }, checkpoint_path)
+            print(f"\n💾 Checkpoint saved: {checkpoint_path} (Avg reward last 1k: {np.mean(episode_rewards[-1000:]) if len(episode_rewards) >= 1000 else np.mean(episode_rewards):.2f})\n")
     env.close()
     writer.close()
     
