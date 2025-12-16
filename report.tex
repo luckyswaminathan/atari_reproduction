@@ -129,7 +129,7 @@ The baseline model is a DQN based on the architecture proposed by Mnih et al. in
 
 The dueling DQN is identical to the original baseline model up until the final convolutional layer. After this layer, there is a hidden layer with 512 units and a RELU activation function. This gets fed into the Value stream and the Advantage stream (nn.Linear(512, 1) and nn.Linear(512, num_actions) respectively). The outputs of these two streams are then combined to produce the final Q-values using the equation Q(s,a) = V(s) + (A(s,a) − mean_a A(s,a)).
 
-The purpose of this architecture is such that the model learns the value of a state separately from an action's advantage, which can help in scenarios where many actions have similar outcomes.
+The purpose of this architecture is such that the model learns the value of a state separately from an action's advantage, which can help in scenarios where many actions have similar outcomes. 
 
 \subsection{MHA Variant}
 
@@ -138,13 +138,15 @@ The purpose of this architecture is such that the model learns the value of a st
 % - Number of heads, model dimension
 % - Residual connections, layer norm (if used)
 
-The Multi-Head Attention (MHA) variant utilizes a multi-head self-attention mechanism after the convolutional layers of the baseline DQNB architecture. 
+The Multi-Head Attention (MHA) variant utilizes a multi-head self-attention mechanism after the convolutional layers of the baseline DQN architecture. The feature map output from the final convolutional layer is reshaped into spacial tokens, getting a pooled attention representation and passing it into a RELU then fully connected layer to output the Q-values for each action. 
 
 \subsection{Dueling + MHA}
 
 % TODO: Clarify ordering:
 % - CNN -> MHA -> (dueling head), or other arrangement
 % - Parameter count comparison
+
+The combined Dueling + MHA model integrates both the dueling and multi-head architectures. Similar to the MHA implementation, the tokenization is placed after the convolutional layer. Instead of feeding the attention output directly into the final fully connected layer, it is first passed through the dueling architecture, where the output is split into Value and Advantage streams before being combined to produce the final Q-values.
 
 \subsection{Hypotheses}
 
