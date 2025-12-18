@@ -148,17 +148,6 @@ The Multi-Head Attention (MHA) variant utilizes a multi-head self-attention mech
 
 The combined Dueling + MHA model integrates both the dueling and multi-head architectures. Similar to the MHA implementation, the tokenization is placed after the convolutional layer. Instead of feeding the attention output directly into the final fully connected layer, it is first passed through the dueling architecture, where the output is split into Value and Advantage streams before being combined to produce the final Q-values.
 
-\subsection{MHA V2 Variant}
-
-The MHA V2 variant addresses several limitations of the original MHA architecture. The key changes are:
-
-\begin{itemize}
-    \item \textbf{Positional Encoding:} Learnable positional embeddings are added on top of the spatial tokens before attention, which gives spatial context that is lost when treating the feature map as a set of tokens.
-    \item \textbf{Residual Connection:} The attention output is added back to the input tokens (residual connection), to improve gradient flow during training.
-    \item \textbf{Layer Normalization:} Applied after the residual connection to stabilize training.
-    \item \textbf{No Information Bottleneck:} Instead of mean-pooling to 64 dimensions, the full output is flattened and passed to the fully connected layer.
-\end{itemize}
-
 \subsection{Hypotheses}
 
 % TODO: Write these explicitly
@@ -169,191 +158,96 @@ The MHA V2 variant addresses several limitations of the original MHA architectur
 \section{Experimental Setup}
 %==============================================================================
 
-\subsection{Environment}
-All of the model variants were trained on Atari Breakout using the Gymnasium libary with the Arcade Learning Environment (ALE) backend. The agent gets a +1 reward for each brick destroyed, and the episode ends when all lives are lost.
+% TODO: Environments: game(s)/task(s), observation shape, action count
 
-\begin{itemize}
-    \item \textbf{Observation Space:} RGB frames (210×160×3)
-    \item \textbf{Action Space:} 4 discrete actions (NOOP, FIRE, LEFT, RIGHT)
-    \item \textbf{Frame Skip:} 4 (action repeated for 4 frames)
-\end{itemize}
+% TODO: Data pipeline:
+% - Preprocessing (resize/crop, grayscale, frame stack)
+% - Frame-skip / action repeat
+% - Reward clipping
 
-\subsection{Preprocessing Pipeline}
-Following the original DQN paper, each observation is preprocessed as follows:
-\begin{enumerate}
-    \item Convert RGB frames to black and white
-    \item Resize frames to 84×84 pixels
-    \item Normalize pixel values from [0, 1]
-    \item Stack 4 consecutive frames to form the input state
-\end{enumerate}
+% TODO: Training details:
+% - Replay buffer size, batch size, optimizer, learning rate, discount γ
+% - ε schedule (start/end, anneal length)
+% - Target update method
 
-So, the final input tensor to the network is shaped as (4, 84, 84).
+% TODO: Compute budget:
+% - Steps/frames trained, number of seeds, GPU/CPU
 
-\subsection{Training Hyperparameters}
-We chose to train all models with the same hyperparameters so that differences in performance com from architecture and not from the hyperparameters.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{ll}
-\toprule
-\textbf{Hyperparameter} & \textbf{Value} \\
-\midrule
-Replay buffer capacity & 50,000 \\
-Batch size & 32 \\
-Discount factor ($\gamma$) & 0.99 \\
-Learning rate & 0.00025 \\
-Optimizer & RMSprop ($\alpha=0.95$, $\epsilon=0.01$) \\
-Target network update & every 1,000 steps \\
-Warmup steps & 1,000 \\
-Max steps per episode & 5,000 \\
-Exploration ($\epsilon$) & linear decay from 1.0 to 0.1 over 100,000 steps \\
-Training episodes & 10,000 \\
-\bottomrule
-\end{tabular}
-\caption{Training hyperparameters shared across all model variants.}
-\label{tab:hyperparams}
-\end{table}
+% TODO: Fairness controls:
+% - Same training steps and evaluation frequency
+% - Same random seeds
 
 %==============================================================================
 \section{Evaluation Protocol and Metrics}
 %==============================================================================
 
-Performance is measured from training logs. We focus on the following metrics:
-
-\begin{itemize}
-    \item \textbf{Average episodic return:} the mean reward across all episodes.
-    \item \textbf{Best episode reward:} the maximum reward achieved in any single episode.
-    \item \textbf{Sample efficiency:} how quickly the moving-average reward reaches fixed thresholds.
-\end{itemize}
-
-All models use the same environment, preprocessing, and hyperparameters. These results come from a single training run per model, so the variance between random runs is not captured here.
+% TODO: Primary metric: average episodic return
+% TODO: Variance: std across seeds, confidence intervals
+% TODO: Sample efficiency: score vs environment steps curve
+% TODO: Stability: training curve smoothness, Q-value magnitudes
 
 %==============================================================================
 \section{Results}
 %==============================================================================
 
-\subsection{Overall Performance}
-Table~\ref{tab:results} summarizes the main outcomes over 10,000 episodes.
+% TODO: One main table:
+% - Rows: Baseline, Dueling, MHA, Dueling+MHA
+% - Columns: final score, best score, AUC, wall-clock time, params
 
-\begin{table}[H]
-\centering
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Model} & \textbf{Episodes} & \textbf{Avg Reward} & \textbf{Best Reward} & \textbf{vs. Base} \\
-\midrule
-Base DQN & 10,000 & 12.38 & 100 & -- \\
-Dueling DQN & 10,000 & 9.64 & 75 & -22.1\% \\
-MHA DQN & 10,000 & 3.13 & 13 & -74.7\% \\
-Dueling + MHA DQN & 10,000 & 3.97 & 14 & -67.9\% \\
-MHA V2 DQN & 10,000 & \textbf{23.37} & 73 & \textbf{+88.8\%} \\
-\bottomrule
-\end{tabular}
-\caption{Performance comparison of DQN variants on Breakout (10,000 episodes).}
-\label{tab:results}
-\end{table}
+% TODO: Figures:
+% - Learning curves (mean over seeds with shaded variance)
+% - Bar chart of final performance with error bars
 
-\begin{figure}[H]
-\centering
-% TODO (Overleaf): replace with your path, e.g. \includegraphics[width=\textwidth]{plots/comprehensive_comparison.png}
-\includegraphics[width=\textwidth]{TODO_PATH_COMPREHENSIVE_COMPARISON}
-\caption{The big comparison plot}
-\label{fig:comprehensive_comparison}
-\end{figure}
-
-\subsection{Learning Curves}
-The smoothed reward curves show that MHA V2 learns much faster early onm while the Base QN continues improving later and ends with the best performance. The original MHA variants stay close to random play the whole time.
-
-\begin{figure}[H]
-\centering
-% TODO (Overleaf): replace with your path, e.g. \includegraphics[width=\textwidth]{plots/individual_models.png}
-\includegraphics[width=\textwidth]{TODO_PATH_INDIVIDUAL_MODELS}
-\caption{Individual learning curves for each model.}
-\label{fig:individual_models}
-\end{figure}
-
-\subsection{Sample Efficiency}
-For sample efficiency, we record the first episode where a moving-average reward reaches each threshold.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Model} & \textbf{Reach 5} & \textbf{Reach 10} & \textbf{Reach 15} & \textbf{Reach 20} \\
-\midrule
-Base DQN & 1541 & 5182 & 6861 & 8018 \\
-Dueling DQN & 980 & 7632 & 8145 & 8579 \\
-MHA DQN & 4385 & -- & -- & -- \\
-Dueling + MHA DQN & 453 & -- & -- & -- \\
-MHA V2 DQN & 241 & 763 & 1058 & 1722 \\
-\bottomrule
-\end{tabular}
-\caption{Episodes to reach reward thresholds (moving-average based). ``--'' means the threshold was not reached within 10,000 episodes.}
-\label{tab:sample_efficiency}
-\end{table}
-
-This matches what we see in Figure~\ref{fig:comprehensive_comparison}: MHA V2 reaches reward 20 around episode 1,700, while Base DQN reaches reward 20 around episode 8,000.
+% TODO: Key comparisons:
+% - "Does dueling help alone?"
+% - "Does MHA help alone?"
+% - "Is the combined model additive or redundant?"
+% - "Any environments where a method hurts?"
 
 %==============================================================================
 \section{Analysis and Ablations}
 %==============================================================================
 
-\subsection{Why the Original MHA Variants Struggle}
-The original MHA architectures suffer because of the mean pooling. It samples the output down to 64 dimensions before the fully connected layers, which creates a large information bottleneck.
+% TODO: Attention ablations:
+% - heads ∈ {1, 2, 4, 8}
+% - where attention is inserted (early vs late)
 
-\begin{figure}[H]
-\centering
-% TODO (Overleaf): replace with your path, e.g. \includegraphics[width=\textwidth]{plots/mha_ablation.png}
-\includegraphics[width=\textwidth]{TODO_PATH_MHA_ABLATION}
-\caption{Ablation comparing original MHA vs. MHA V2. MHA V2 improves rewards substantially and has a more stable loss curve.}
-\label{fig:mha_ablation}
-\end{figure}
+% TODO: Dueling ablations:
+% - mean vs max advantage normalization
+% - where you split the streams
 
-\subsection{Parameter Counts}
-Table~\ref{tab:params} shows exact parameter counts. The original MHA variants are much smaller because the bottleneck makes the fully connected head tiny. MHA V2 removes the bottleneck and ends up close to the baseline size.
+% TODO: Capacity/compute:
+% - parameter count comparison
+% - training time comparison
 
-\begin{table}[H]
-\centering
-\begin{tabular}{lc}
-\toprule
-\textbf{Model} & \textbf{Parameters} \\
-\midrule
-Base DQN & 1,686,180 \\
-Dueling DQN & 1,686,693 \\
-MHA DQN & 129,956 \\
-Dueling + MHA DQN & 130,469 \\
-MHA V2 DQN & 1,706,084 \\
-\bottomrule
-\end{tabular}
-\caption{Exact parameter counts for each model variant.}
-\label{tab:params}
-\end{table}
+% TODO: Qualitative:
+% - rollout examples (success/failure cases)
 
 %==============================================================================
 \section{Discussion}
 %==============================================================================
 
-The results show a clear pattern. Attention can help, but only when the design preserves the information needed for the task. 
+% TODO: Interpret results relative to hypotheses
 
-MHA V2 is the strongest model on average and is much more sample efficient than the baseline. But, the Base DQN keeps improving later. 
+% TODO: Tradeoffs:
+% - performance vs compute
+% - stability vs peak score
+% - sensitivity to hyperparameters
 
-Dueling DQN underperforms the baseline. This might be because Breakout has a small action space (4), and the benefits of value/advantage decomp are smaller.
-
-\subsection{Limitations}
-\begin{itemize}
-    \item \textbf{Single environment:} results are only for Breakout.
-    \item \textbf{Single run per model:} we did not average across random seeds.
-    \item \textbf{Fixed hyperparameters:} each architecture may have a different best configuration.
-    \item \textbf{Compute:} each model was only trained for 10k steps, when the actual paper was trained for 3 million.
-\end{itemize}
+% TODO: Failure modes:
+% - when attention doesn't help
+% - when dueling doesn't help
 
 %==============================================================================
 \section{Conclusion}
 %==============================================================================
 
-This project compares several DQN variants on Atari Breakout. MHA V2 performs the best on average and learns very quickly. 
-At the same time the Base DQN remains a very strong base line. A natural next step is to run multiple seeds and extend training further, then we can see how the long term rewards compare betwen the different architectures.
+% TODO: 3-5 sentences:
+% - what worked best
+% - what you learned
+% - what you'd try next (Double DQN, prioritized replay, distributional RL, etc.)
 
-
+%==============================================================================
 \section*{References}
 %==============================================================================
 
