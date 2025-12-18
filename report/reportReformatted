@@ -1,0 +1,306 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+%Template version as of 6/27/2024
+
+\usepackage{cite}
+\usepackage{url}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{float}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{Title}
+
+\author{\IEEEauthorblockN{Name1}
+\and
+\IEEEauthorblockN{Name 2}
+\and
+\IEEEauthorblockN{Name 3}
+}
+\maketitle
+
+\begin{abstract}
+...
+\end{abstract}
+
+\section{Introduction}
+The implications of reinforcement learning in high-dimensional autonomous systems are undoubtedly a major technological challenge which would enable immense applications if solved correctly. The ability for a computer to teach itself a task within an unknown environment cannot be understated; however, there is great difficulty in this task, especially with regards to high-dimensional inputs such as camera feeds and complex sensor arrays. Recent advancements in deep networks have made great strides in solving the feature engineering problem, with networks now able to learn representations directly from raw data.
+
+Despite these advancements, we are still a long way from agents being able to automatically complete complex tasks with generalized RL. In this paper, we implement one of the breakthrough studies in RL with deep networks and attempt to build on that implementation to create a more effective solution.
+
+
+\section{Background}
+Q-learning is an algorithm for reinforcement learning that aims to learn the optimal action given a state. Q-learning takes into account the state, actions, and rewards to learn a policy that maximizes the cumulative reward over time.
+
+The Bellman equation is the fundamental equation in reinforcement learning and outputs the cost of taking an action in a given state, then following the optimal policy thereafter. The Bellman equation is defined as:
+
+\begin{equation}
+Q(s,a) = R(s,a) + \gamma \max_{a'} Q(s',a')
+\end{equation}
+
+The optimal policy is the policy that maximizes the cumulative reward, and finding this optimal policy is the goal of reinforcement learning. 
+
+Generally, the Q-values are stored in a table, calculated using a function approximator, or found using a Markov chain, but this limits the complexity of the environments that can be solved.
+
+Deep Q-Networks (DQN) provided a breakthrough in reinforcement learning through the process training a deep neural network to approximate the Q-values, allowing for reinforcement learning to be applied to much more complex environments, a previous limitation of traditional Q-learning. 
+
+Some difficulties with previous Q-learning methods were instability and divergence when a non-linear function approximator was used. 
+
+DQN utilizes experience replay to provide stability during training by storing the experiences of the agent, and batch sampling from this storage to break up correlations in the observation sequence.
+
+\section{Related Work}
+
+
+
+\section{Method}
+
+For each of the following models, the forward pass takes as input a stack of 4 grayscale frames of size 84x84 pixels, and outputs Q-values for each possible action in the environment. 
+
+Training each model...
+
+\subsection{Baseline Model}
+
+% TODO: Architecture (CNN -> FC -> Q-values)
+% - Conv sizes/strides
+% - Frame stack details
+% - Training loop: replay buffer sampling, TD target, optimizer, exploration schedule
+
+The baseline model is a DQN based on the architecture proposed by Mnih et al. in "Playing Atari with Deep Reinforcement Learning". The model consists of a convolutional neural network (CNN), intaking 4 stacked frames of 84x84 pixels and utilizing three convolutional layers (32 filters of size 8x8 with stride 4, 64 filters of size 4x4 with stride 2, and 64 filters of size 3x3 with stride 1), followed by two fully connected layers (Input size 3136 to 512 units, and 512 units to output layer with number of actions). The ReLU activation function is applied after each convolutional and fully connected layer except for the output layer.
+
+
+\subsection{Dueling DQN Variant}
+
+% TODO: Describe the head split:
+% - Shared feature extractor
+% - Two streams: Value V(s) and Advantage A(s,a)
+% - Combine into Q(s,a) = V(s) + (A(s,a) − mean_a A(s,a))
+
+% TODO: Implementation details:
+% - Where the split happens
+% - Normalization choice (mean vs max)
+
+The dueling DQN is identical to the original baseline model up until the final convolutional layer. After this layer, there is a hidden layer with 512 units and a RELU activation function. This gets fed into the Value stream and the Advantage stream (nn.Linear(512, 1) and nn.Linear(512, num-actions) respectively). The outputs of these two streams are then combined to produce the final Q-values using the equation Q(s,a) = V(s) + (A(s,a) − mean-a A(s,a)).
+
+The purpose of this architecture is such that the model learns the value of a state separately from an action's advantage, which can help in scenarios where many actions have similar outcomes. 
+
+\subsection{MHA Variant}
+
+% TODO: Where attention is applied:
+% - Spatial attention: treat conv feature map as tokens
+% - Number of heads, model dimension
+% - Residual connections, layer norm (if used)
+
+The Multi-Head Attention (MHA) variant utilizes a multi-head self-attention mechanism after the convolutional layers of the baseline DQN architecture. The feature map output from the final convolutional layer is reshaped into spacial tokens, getting a pooled attention representation and passing it into a RELU then fully connected layer to output the Q-values for each action. 
+
+\subsection{Dueling + MHA}
+
+% TODO: Clarify ordering:
+% - CNN -> MHA -> (dueling head), or other arrangement
+% - Parameter count comparison
+
+The combined Dueling + MHA model integrates both the dueling and multi-head architectures. Similar to the MHA implementation, the tokenization is placed after the convolutional layer. Instead of feeding the attention output directly into the final fully connected layer, it is first passed through the dueling architecture, where the output is split into Value and Advantage streams before being combined to produce the final Q-values.
+
+\subsection{MHA V2 Variant}
+
+The MHA V2 variant addresses several limitations of the original MHA architecture. The key changes are:
+
+\begin{itemize}
+    \item \textbf{Positional Encoding:} Learnable positional embeddings are added on top of the spatial tokens before attention, which gives spatial context that is lost when treating the feature map as a set of tokens.
+    \item \textbf{Residual Connection:} The attention output is added back to the input tokens (residual connection), to improve gradient flow during training.
+    \item \textbf{Layer Normalization:} Applied after the residual connection to stabilize training.
+    \item \textbf{No Information Bottleneck:} Instead of mean-pooling to 64 dimensions, the full output is flattened and passed to the fully connected layer.
+\end{itemize}
+
+\section{Hypothesis}
+\section{Experimental Setup}
+\subsection{Environment}
+All of the model variants were trained on Atari Breakout using the Gymnasium libary with the Arcade Learning Environment (ALE) backend. The agent gets a +1 reward for each brick destroyed, and the episode ends when all lives are lost.
+
+\begin{itemize}
+    \item \textbf{Observation Space:} RGB frames (210×160×3)
+    \item \textbf{Action Space:} 4 discrete actions (NOOP, FIRE, LEFT, RIGHT)
+    \item \textbf{Frame Skip:} 4 (action repeated for 4 frames)
+\end{itemize}
+
+\subsection{Preprocessing Pipeline}
+Following the original DQN paper, each observation is preprocessed as follows:
+\begin{enumerate}
+    \item Convert RGB frames to black and white
+    \item Resize frames to 84×84 pixels
+    \item Normalize pixel values from [0, 1]
+    \item Stack 4 consecutive frames to form the input state
+\end{enumerate}
+
+So, the final input tensor to the network is shaped as (4, 84, 84).
+
+\subsection{Training Hyperparameters}
+We chose to train all models with the same hyperparameters so that differences in performance com from architecture and not from the hyperparameters.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Hyperparameter} & \textbf{Value} \\
+\midrule
+Replay buffer capacity & 50,000 \\
+Batch size & 32 \\
+Discount factor ($\gamma$) & 0.99 \\
+Learning rate & 0.00025 \\
+Optimizer & RMSprop ($\alpha=0.95$, $\epsilon=0.01$) \\
+Target network update & every 1,000 steps \\
+Warmup steps & 1,000 \\
+Max steps per episode & 5,000 \\
+Exploration ($\epsilon$) & linear decay from 1.0 to 0.1 over 100,000 steps \\
+Training episodes & 10,000 \\
+\bottomrule
+\end{tabular}
+\caption{Training hyperparameters shared across all model variants.}
+\label{tab:hyperparams}
+\end{table}
+
+
+\section{Evaluation Protocol and Metrics}
+Performance is measured from training logs. We focus on the following metrics:
+
+\begin{itemize}
+    \item \textbf{Average episodic return:} the mean reward across all episodes.
+    \item \textbf{Best episode reward:} the maximum reward achieved in any single episode.
+    \item \textbf{Sample efficiency:} how quickly the moving-average reward reaches fixed thresholds.
+\end{itemize}
+
+All models use the same environment, preprocessing, and hyperparameters. These results come from a single training run per model, so the variance between random runs is not captured here.
+
+\section{Results}
+Table~\ref{tab:results} summarizes the main outcomes over 10,000 episodes.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Episodes} & \textbf{Avg Reward} & \textbf{Best Reward} & \textbf{vs. Base} \\
+\midrule
+Base DQN & 10,000 & 12.38 & 100 & -- \\
+Dueling DQN & 10,000 & 9.64 & 75 & -22.1\% \\
+MHA DQN & 10,000 & 3.13 & 13 & -74.7\% \\
+Dueling + MHA DQN & 10,000 & 3.97 & 14 & -67.9\% \\
+MHA V2 DQN & 10,000 & \textbf{23.37} & 73 & \textbf{+88.8\%} \\
+\bottomrule
+\end{tabular}
+\caption{Performance comparison of DQN variants on Breakout (10,000 episodes).}
+\label{tab:results}
+\end{table}
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=0.5\linewidth]{image.png}
+    \caption{Model Training Comparison}
+    \label{fig:placeholder}
+\end{figure*}
+
+\subsection{Learning Curves}
+The smoothed reward curves show that MHA V2 learns much faster early onm while the Base QN continues improving later and ends with the best performance. The original MHA variants stay close to random play the whole time.
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=0.75\linewidth]{image2.png}
+    \caption{Individual Learning Curves for Each Model}
+    \label{fig:placeholder}
+\end{figure*}
+
+\subsection{Sample Efficiency}
+For sample efficiency, we record the first episode where a moving-average reward reaches each threshold.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Reach 5} & \textbf{Reach 10} & \textbf{Reach 15} & \textbf{Reach 20} \\
+\midrule
+Base DQN & 1541 & 5182 & 6861 & 8018 \\
+Dueling DQN & 980 & 7632 & 8145 & 8579 \\
+MHA DQN & 4385 & -- & -- & -- \\
+Dueling + MHA DQN & 453 & -- & -- & -- \\
+MHA V2 DQN & 241 & 763 & 1058 & 1722 \\
+\bottomrule
+\end{tabular}
+\caption{Episodes to reach reward thresholds (moving-average based). ``--'' means the threshold was not reached within 10,000 episodes.}
+\label{tab:sample_efficiency}
+\end{table}
+
+This matches what we see in Figure~\ref{fig:comprehensive_comparison}: MHA V2 reaches reward 20 around episode 1,700, while Base DQN reaches reward 20 around episode 8,000.
+
+
+\section{Analysis and Ablations}
+
+\subsection{Why the Original MHA Variants Struggle}
+The original MHA architectures suffer because of the mean pooling. It samples the output down to 64 dimensions before the fully connected layers, which creates a large information bottleneck.
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=0.75\linewidth]{image3.png}
+    \caption{Original MHA vs MHA V2}
+    \label{fig:placeholder}
+\end{figure*}
+
+\subsection{Parameter Counts}
+Table~\ref{tab:params} shows exact parameter counts. The original MHA variants are much smaller because the bottleneck makes the fully connected head tiny. MHA V2 removes the bottleneck and ends up close to the baseline size.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lc}
+\toprule
+\textbf{Model} & \textbf{Parameters} \\
+\midrule
+Base DQN & 1,686,180 \\
+Dueling DQN & 1,686,693 \\
+MHA DQN & 129,956 \\
+Dueling + MHA DQN & 130,469 \\
+MHA V2 DQN & 1,706,084 \\
+\bottomrule
+\end{tabular}
+\caption{Exact parameter counts for each model variant.}
+\label{tab:params}
+\end{table}
+
+The results show a clear pattern. Attention can help, but only when the design preserves the information needed for the task. 
+
+MHA V2 is the strongest model on average and is much more sample efficient than the baseline. But, the Base DQN keeps improving later. 
+
+Dueling DQN underperforms the baseline. This might be because Breakout has a small action space (4), and the benefits of value/advantage decomp are smaller.
+
+\subsection{Limitations}
+\begin{itemize}
+    \item \textbf{Single environment:} results are only for Breakout.
+    \item \textbf{Single run per model:} we did not average across random seeds.
+    \item \textbf{Fixed hyperparameters:} each architecture may have a different best configuration.
+    \item \textbf{Compute:} each model was only trained for 10k steps, when the actual paper was trained for 3 million.
+\end{itemize}
+
+%==============================================================================
+\section{Conclusion}
+%==============================================================================
+
+This project compares several DQN variants on Atari Breakout. MHA V2 performs the best on average and learns very quickly. 
+At the same time the Base DQN remains a very strong base line. A natural next step is to run multiple seeds and extend training further, then we can see how the long term rewards compare betwen the different architectures.
+
+
+\subsection{Future}
+...
+
+\begin{thebibliography}{00}
+\bibitem{mnih2013}
+V.~Mnih \textit{et al.},
+``Playing Atari with deep reinforcement learning,''
+\textit{arXiv preprint arXiv:1312.5602}, 2013. [Online]. Available:
+\url{https://arxiv.org/abs/1312.5602}
+\end{thebibliography}
+\end{document}
