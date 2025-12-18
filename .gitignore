@@ -13,3 +13,8 @@ plots_10k/
 *.pt
 *.tfevents.*
 training_*.log
+
+
+runs/
+
+__pycache__/
